@@ -1,10 +1,10 @@
 use std::collections::BTreeMap;
 
 use async_trait::async_trait;
-use futures::{Sink, SinkExt};
+use futures::{Sink, SinkExt, Stream};
 
 use crate::api::auth::md5pass::hash_md5_password;
-use crate::error::{ErrorInfo, PgWireClientError, PgWireClientResult};
+use crate::error::{ErrorInfo, PgWireClientError, PgWireClientResult, PgWireResult};
 use crate::messages::response::ReadyForQuery;
 use crate::messages::startup::{
     Authentication, BackendKeyData, ParameterStatus, Password, PasswordMessageFamily, Startup,
@@ -26,7 +26,8 @@ pub trait StartupHandler: Send {
         message: PgWireBackendMessage,
     ) -> PgWireClientResult<ReadyState<ServerInformation>>
     where
-        C: ClientInfo + Sink<PgWireFrontendMessage> + Unpin + Send,
+        C: ClientInfo
+        + Stream<Item = PgWireResult<PgWireBackendMessage>>+ Sink<PgWireFrontendMessage> + Unpin + Send,
         PgWireClientError: From<<C as Sink<PgWireFrontendMessage>>::Error>,
     {
         match message {
@@ -60,7 +61,8 @@ pub trait StartupHandler: Send {
         message: Authentication,
     ) -> PgWireClientResult<()>
     where
-        C: ClientInfo + Sink<PgWireFrontendMessage> + Unpin + Send,
+        C: ClientInfo
+        + Stream<Item = PgWireResult<PgWireBackendMessage>> + Sink<PgWireFrontendMessage> + Unpin + Send,
         PgWireClientError: From<<C as Sink<PgWireFrontendMessage>>::Error>;
 
     async fn on_parameter_status<C>(
